@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wallet Ledger API · Playground</title>
+  <meta name="description" content="Interactive playground for a wallet + ledger REST API built on Cloudflare Workers." />
+  <meta name="theme-color" content="#161617" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    /* ---- Graphite palette ---- */
+    :root {
+      --bg: #161617;
+      --surface: #1c1c1d;
+      --surface-2: #232324;
+      --border: #2e2e30;
+      --border-strong: #3a3a3c;
+      --text: #e8e8e6;
+      --muted: #8a8a86;
+      --accent: #7fb069;
+      --accent-fg: #161617;
+      --accent-soft: rgba(127, 176, 105, 0.14);
+      --danger: #e5867a;
+      --warn: #e0b76a;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 32px 20px 80px;
+    }
+
+    .wrap {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    /* ---- Header ---- */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    h1 .dim { color: var(--muted); font-weight: 500; }
+
+    .sub {
+      color: var(--muted);
+      max-width: 60ch;
+      font-size: 15px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .meta a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .meta a:hover { color: var(--text); border-bottom-color: var(--border-strong); }
+
+    /* ---- Auth banner ---- */
+    .auth-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(127, 176, 105, 0.4);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    .auth-banner strong { color: var(--accent); font-weight: 600; }
+    .auth-banner code {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    /* ---- Grid ---- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 16px;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card h2 .num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+
+    /* ---- Forms ---- */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    input::placeholder { color: var(--muted); opacity: 0.6; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ---- Buttons ---- */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    button:hover { background: var(--border); border-color: var(--border-strong); }
+    button:active { transform: translateY(1px); }
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    button.primary:hover {
+      background: color-mix(in srgb, var(--accent) 88%, white);
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ---- Token box ---- */
+    .token-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 6px;
+    }
+    .token-box code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .token-box button {
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* ---- Account list + tables ---- */
+    .account-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .account-row:last-child { border-bottom: none; }
+    .account-row code {
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--text);
+    }
+    .account-row .remove-btn {
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+
+    .empty {
+      padding: 14px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--bg);
+      border-radius: 6px;
+      border: 1px dashed var(--border);
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    th {
+      text-align: left;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 500;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    tr:last-child td { border-bottom: none; }
+    td.dir-credit { color: var(--accent); }
+    td.dir-debit { color: var(--danger); }
+
+    /* ---- Response panel ---- */
+    .response-card { grid-column: 1 / -1; }
+    pre {
+      margin: 0;
+      background: #0e0e0f;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #d4d4d2;
+      overflow-x: auto;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .status-line .status-code {
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .status-line .status-code.ok { color: var(--accent); background: var(--accent-soft); }
+    .status-line .status-code.fail { color: var(--danger); background: rgba(229, 134, 122, 0.12); }
+
+    /* ---- Footer ---- */
+    footer {
+      margin-top: 32px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    footer a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--border); }
+    footer a:hover { color: var(--text); }
+
+    /* ---- Mobile tweaks ---- */
+    @media (max-width: 640px) {
+      body { padding: 20px 14px 60px; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="eyebrow">Wallet Ledger API</span>
+      <h1>Interactive playground<br /><span class="dim">for an append-only wallet ledger.</span></h1>
+      <p class="sub">
+        A REST API built on Cloudflare Workers + KV, demonstrating the ledger pattern, idempotent transfers, and integer-cents money math. Every action below hits the real API.
+      </p>
+      <div class="meta">
+        <a href="/" target="_blank" rel="noopener">GET /</a>
+        <span>·</span>
+        <a href="/health" target="_blank" rel="noopener">GET /health</a>
+        <span>·</span>
+        <a href="https://github.com/Oliver-Leonor/wallet-ledger-api" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </header>
+
+    <div class="auth-banner">
+      <div>
+        <strong>Demo auth.</strong> Writes require a bearer token. Copy from the "Demo token" card below and paste into your curl / Postman as <code>Authorization: Bearer &lt;token&gt;</code>. The UI handles this automatically.
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Token card -->
+      <div class="card">
+        <h2><span class="num">AUTH</span> Demo token</h2>
+        <p class="card-desc">
+          Shared across all demo users. Safe to expose because the real auth model is per-user and out of scope for this prototype (see DECISIONS.md).
+        </p>
+        <div class="token-box" id="tokenBox">
+          <code id="tokenValue">Loading...</code>
+          <button id="btnCopyToken" title="Copy token to clipboard">Copy</button>
+        </div>
+      </div>
+
+      <!-- Accounts card -->
+      <div class="card">
+        <h2><span class="num">01</span> Accounts</h2>
+        <p class="card-desc">Create accounts. The UI tracks IDs in localStorage so you can come back later.</p>
+        <div class="field-row">
+          <div class="field">
+            <label>Currency</label>
+            <select id="currency">
+              <option value="PHP">PHP</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+          <div class="field" style="align-self:end;">
+            <button class="primary" id="btnCreate" style="width:100%;">Create account</button>
+          </div>
+        </div>
+        <div id="accountsList" style="margin-top:12px;"></div>
+        <div class="btn-row">
+          <button id="btnRefresh">Refresh balances</button>
+          <button id="btnReset">Reset UI (local)</button>
+        </div>
+        <div id="balances" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- Deposit card -->
+      <div class="card">
+        <h2><span class="num">02</span> Deposit</h2>
+        <p class="card-desc">Amounts round to integer cents server-side to avoid float bugs.</p>
+        <div class="field">
+          <label>Account</label>
+          <select id="depositAccount"></select>
+        </div>
+        <div class="field">
+          <label>Amount</label>
+          <input id="depositAmount" type="number" step="0.01" min="0" placeholder="e.g. 500.00" />
+        </div>
+        <button class="primary" id="btnDeposit">Deposit</button>
+      </div>
+
+      <!-- Transfer card -->
+      <div class="card">
+        <h2><span class="num">03</span> Transfer (idempotent)</h2>
+        <p class="card-desc">
+          Retries are safe. Reusing the same Idempotency-Key replays the original response instead of double-charging.
+        </p>
+        <div class="field-row">
+          <div class="field">
+            <label>From</label>
+            <select id="fromAccount"></select>
+          </div>
+          <div class="field">
+            <label>To</label>
+            <select id="toAccount"></select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Amount</label>
+            <input id="transferAmount" type="number" step="0.01" min="0" placeholder="e.g. 120.00" />
+          </div>
+          <div class="field">
+            <label>Idempotency Key</label>
+            <input id="idemKey" placeholder="demo-1 (optional)" />
+          </div>
+        </div>
+        <button class="primary" id="btnTransfer">Transfer</button>
+      </div>
+
+      <!-- Ledger card -->
+      <div class="card">
+        <h2><span class="num">04</span> Ledger (audit trail)</h2>
+        <p class="card-desc">Append-only. Balances are derived by summing entries, never stored directly.</p>
+        <div class="field">
+          <label>Account</label>
+          <select id="ledgerAccount"></select>
+        </div>
+        <button class="primary" id="btnLedger">Load ledger</button>
+        <div id="ledger" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- Response card -->
+      <div class="card response-card">
+        <h2><span class="num">DBG</span> Last response</h2>
+        <div class="status-line" id="statusLine" style="display:none;">
+          <span>Status</span>
+          <span id="statusCode" class="status-code">-</span>
+          <span>Request ID</span>
+          <span id="requestIdValue" style="color: var(--text); text-transform: none; letter-spacing: 0;">-</span>
+        </div>
+        <pre id="out">Response will appear here after your first action.</pre>
+      </div>
+    </div>
+
+    <footer>
+      Built by <a href="https://oliver-leonor.vercel.app" target="_blank" rel="noopener">Oliver Leonor</a> · Cloudflare Workers + Hono + Zod
+    </footer>
+  </div>
+
+<script>
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+
+  const storeKey = 'wallet-ledger-ui-accounts';
+  const loadAccounts = () => {
+    try { return JSON.parse(localStorage.getItem(storeKey) || '[]'); }
+    catch { return []; }
+  };
+  const saveAccounts = (accs) => localStorage.setItem(storeKey, JSON.stringify(accs));
+
+  let demoToken = null;
+
+  function phpToCents(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n * 100);
+  }
+
+  function centsToDisplay(cents, currency = '') {
+    if (typeof cents !== 'number') return '-';
+    const whole = (cents / 100).toFixed(2);
+    return currency ? whole + ' ' + currency : whole;
+  }
+
+  async function apiGet(path) {
+    const r = await fetch(path);
+    const requestId = r.headers.get('x-request-id') || '';
+    let data;
+    try { data = await r.json(); } catch { data = {}; }
+    return { ok: r.ok, status: r.status, requestId, data };
+  }
+
+  async function apiPost(path, body, headers = {}) {
+    const h = { 'content-type': 'application/json' };
+    if (demoToken) h['authorization'] = 'Bearer ' + demoToken;
+    Object.assign(h, headers);
+
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify(body),
+    });
+    const requestId = r.headers.get('x-request-id') || '';
+    let data;
+    try { data = await r.json(); } catch { data = {}; }
+    return { ok: r.ok, status: r.status, requestId, data };
+  }
+
+  function setOut(res) {
+    // Handle both {ok, status, requestId, data, ...} and plain objects.
+    if (res && typeof res === 'object' && 'status' in res && 'data' in res) {
+      const statusLine = $('statusLine');
+      const statusCode = $('statusCode');
+      const reqIdEl = $('requestIdValue');
+      statusLine.style.display = 'flex';
+      statusCode.textContent = String(res.status);
+      statusCode.className = 'status-code ' + (res.ok ? 'ok' : 'fail');
+      reqIdEl.textContent = res.requestId || '-';
+      $('out').textContent = JSON.stringify(res.data, null, 2);
+    } else {
+      $('statusLine').style.display = 'none';
+      $('out').textContent = JSON.stringify(res, null, 2);
+    }
+  }
+
+  function renderAccountSelects(accounts) {
+    const opts = accounts.length
+      ? accounts.map(a => `<option value="${a.id}">${a.id} (${a.currency})</option>`).join('')
+      : '<option value="">No accounts yet</option>';
+    ['depositAccount','fromAccount','toAccount','ledgerAccount'].forEach(id => {
+      $(id).innerHTML = opts;
+    });
+  }
+
+  function renderAccountsList(accounts) {
+    if (!accounts.length) {
+      $('accountsList').innerHTML = '<div class="empty">No accounts yet. Create one above.</div>';
+      return;
+    }
+    $('accountsList').innerHTML = accounts.map(a =>
+      `<div class="account-row">
+        <div><span class="pill">${a.currency}</span> <code>${a.id}</code></div>
+        <button data-del="${a.id}" class="remove-btn">Remove</button>
+      </div>`
+    ).join('');
+    document.querySelectorAll('button[data-del]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-del');
+        const next = loadAccounts().filter(a => a.id !== id);
+        saveAccounts(next);
+        boot();
+      };
+    });
+  }
+
+  async function refreshBalances(accounts) {
+    if (!accounts.length) {
+      $('balances').innerHTML = '';
+      return;
+    }
+    const rows = [];
+    for (const a of accounts) {
+      const res = await apiGet(`/accounts/${a.id}/balance`);
+      rows.push({ id: a.id, currency: a.currency, balanceCents: res.data?.balanceCents });
+    }
+    $('balances').innerHTML =
+      '<table><thead><tr><th>Account</th><th>Currency</th><th style="text-align:right;">Balance</th></tr></thead><tbody>' +
+      rows.map(r => `<tr>
+        <td>${r.id}</td>
+        <td>${r.currency}</td>
+        <td style="text-align:right;">${centsToDisplay(r.balanceCents)}</td>
+      </tr>`).join('') +
+      '</tbody></table>';
+  }
+
+  async function loadToken() {
+    const res = await apiGet('/demo-token');
+    if (res.ok && res.data?.token) {
+      demoToken = res.data.token;
+      $('tokenValue').textContent = demoToken;
+    } else {
+      demoToken = null;
+      $('tokenValue').textContent = 'Token not available. Writes will fail.';
+      $('tokenValue').style.color = 'var(--danger)';
+    }
+  }
+
+  async function boot() {
+    const accounts = loadAccounts();
+    renderAccountSelects(accounts);
+    renderAccountsList(accounts);
+    $('balances').innerHTML = '';
+    $('ledger').innerHTML = '';
+  }
+
+  $('btnCopyToken').onclick = async () => {
+    if (!demoToken) return;
+    try {
+      await navigator.clipboard.writeText(demoToken);
+      const prev = $('btnCopyToken').textContent;
+      $('btnCopyToken').textContent = 'Copied';
+      setTimeout(() => { $('btnCopyToken').textContent = prev; }, 1200);
+    } catch {
+      // fallback - select the text
+      const range = document.createRange();
+      range.selectNode($('tokenValue'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    }
+  };
+
+  $('btnCreate').onclick = async () => {
+    const currency = $('currency').value;
+    const res = await apiPost('/accounts', { currency });
+    setOut(res);
+    if (res.ok && res.data.account) {
+      const accounts = loadAccounts();
+      accounts.push(res.data.account);
+      saveAccounts(accounts);
+      boot();
+    }
+  };
+
+  $('btnDeposit').onclick = async () => {
+    const id = $('depositAccount').value;
+    const cents = phpToCents($('depositAmount').value);
+    if (!id) return setOut({ error: 'Create an account first.' });
+    if (cents == null || cents <= 0) return setOut({ error: 'Enter a valid amount.' });
+    const res = await apiPost(`/accounts/${id}/deposit`, { amountCents: cents });
+    setOut(res);
+  };
+
+  $('btnTransfer').onclick = async () => {
+    const from = $('fromAccount').value;
+    const to = $('toAccount').value;
+    const cents = phpToCents($('transferAmount').value);
+    if (!from || !to || from === to) return setOut({ error: 'Pick different From/To accounts.' });
+    if (cents == null || cents <= 0) return setOut({ error: 'Enter a valid amount.' });
+
+    let key = $('idemKey').value.trim();
+    if (!key) key = 'ui-' + Math.random().toString(16).slice(2, 10);
+
+    const res = await apiPost(
+      '/transfers',
+      { fromAccountId: from, toAccountId: to, amountCents: cents },
+      { 'Idempotency-Key': key }
+    );
+    setOut({ ...res, data: { idempotencyKey: key, ...res.data } });
+  };
+
+  $('btnRefresh').onclick = async () => {
+    const accounts = loadAccounts();
+    await refreshBalances(accounts);
+  };
+
+  $('btnLedger').onclick = async () => {
+    const id = $('ledgerAccount').value;
+    if (!id) return setOut({ error: 'Create/select an account first.' });
+    const res = await apiGet(`/accounts/${id}/ledger`);
+    setOut(res);
+
+    const entries = res.data?.entries || [];
+    if (!entries.length) {
+      $('ledger').innerHTML = '<div class="empty">No ledger entries yet.</div>';
+      return;
+    }
+    $('ledger').innerHTML =
+      '<table><thead><tr><th>Time</th><th>Type</th><th>Dir</th><th style="text-align:right;">Amount</th><th>Ref</th></tr></thead><tbody>' +
+      entries.map(e => `<tr>
+        <td>${new Date(e.createdAt).toLocaleString()}</td>
+        <td>${e.type}</td>
+        <td class="dir-${e.direction.toLowerCase()}">${e.direction}</td>
+        <td style="text-align:right;">${centsToDisplay(e.amountCents, e.currency)}</td>
+        <td>${e.referenceId}</td>
+      </tr>`).join('') +
+      '</tbody></table>' +
+      (res.data.hasMore ? '<div class="empty" style="margin-top:8px;">Has more entries. Paginate with ?cursor=' + res.data.nextCursor + '</div>' : '');
+  };
+
+  $('btnReset').onclick = () => {
+    localStorage.removeItem(storeKey);
+    setOut({ ok: true, message: 'UI reset (localStorage only; server records are preserved).' });
+    boot();
+  };
+
+  loadToken();
+  boot();
+</script>
+</body>
+</html>
