@@ -233,6 +233,10 @@ function requireDemoToken(c: {
  * mutations behind it still stops bots and drive-by mutations.
  */
 app.get('/demo-token', (c) => {
+	// Never cache this response at the edge. Our auth state can flip between
+	// 500 (unconfigured) and 200 (configured) when a secret is set without a
+	// redeploy, and a cached 500 would lock the UI out for minutes.
+	c.header('Cache-Control', 'no-store');
 	if (!c.env.DEMO_API_TOKEN) {
 		return c.json({ error: { code: 'AUTH_NOT_CONFIGURED' } }, 500);
 	}
